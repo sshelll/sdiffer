@@ -55,13 +55,15 @@ func (d *Differ) Diffs() []*diff {
 	return d.diffs
 }
 
+// WithMaxDepth set the max depth of Differ.
+// Differ will panic if depth is over max depth when comparing.
 func (d *Differ) WithMaxDepth(depth int) *Differ {
 	d.maxDepth = depth
 	return d
 }
 
 // Ignore set fields that do not need to be compared.
-// Ignore will fail when Includes exists.
+// Ignore will not work after Includes is called.
 func (d *Differ) Ignore(regexps ...string) *Differ {
 	if len(d.includes) > 0 {
 		return d
@@ -81,6 +83,7 @@ func (d *Differ) Ignore(regexps ...string) *Differ {
 }
 
 // Includes set fields that need to be compared.
+// Ignore will not work after Includes is called.
 func (d *Differ) Includes(regexps ...string) *Differ {
 	d.includes = make([]*regexp.Regexp, 0, len(regexps))
 	for _, expr := range regexps {

@@ -22,7 +22,7 @@ func newDiff(name string, a, b interface{}) *diff {
 }
 
 // Tag generate a short tag of the diff name.
-// for example:
+// For example:
 // Person.Schools[0].Buildings[2].Name => Person.Schools.Buildings.Name
 func (d *diff) Tag() (tag string) {
 	cut := func(str string) string {
