@@ -9,9 +9,9 @@ import (
 type diffMode int
 
 const (
-	ignoreMode  = 1
-	includeMode = 2
-	allDiffMode = 3
+	ignoreMode diffMode = iota
+	includeMode
+	allDiffMode
 )
 
 const (
