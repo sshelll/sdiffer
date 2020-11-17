@@ -33,6 +33,7 @@ type Differ struct {
 	ignores  []*regexp.Regexp
 	includes []*regexp.Regexp
 	maxDepth int
+	diffTmpl string
 	bff      *bufferF
 }
 
@@ -46,7 +47,7 @@ func NewDiffer() *Differ {
 
 func (d *Differ) String() string {
 	for _, df := range d.diffs {
-		d.bff.sprintf("%s\n", df.String())
+		d.bff.sprintf("%s\n", df.String(d.diffTmpl))
 	}
 	return d.bff.String()
 }
@@ -59,6 +60,14 @@ func (d *Differ) Diffs() []*diff {
 // Differ will panic if depth is over max depth when comparing.
 func (d *Differ) WithMaxDepth(depth int) *Differ {
 	d.maxDepth = depth
+	return d
+}
+
+// WithTmpl set diff tmpl for Differ.
+// Tmpl must contains exactly 3 placeholders, such as:
+// `Field: "%s", A: %v, B: %v`
+func (d *Differ) WithTmpl(tmpl string) *Differ {
+	d.diffTmpl = tmpl
 	return d
 }
 

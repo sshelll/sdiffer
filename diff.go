@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const diffTmpl = `Field: "%s", A: %v, B: %v`
+const defaultDiffTmpl = `Field: "%s", A: %v, B: %v`
 
 type diff struct {
 	name string
@@ -42,6 +42,11 @@ func (d *diff) Tag() (tag string) {
 	return
 }
 
-func (d *diff) String() string {
-	return fmt.Sprintf(diffTmpl, d.name, d.va, d.vb)
+func (d *diff) String(tmpl ...string) string {
+	for _, t := range tmpl {
+		if !isStringBlank(t) {
+			return fmt.Sprintf(t, d.name, d.va, d.vb)
+		}
+	}
+	return fmt.Sprintf(defaultDiffTmpl, d.name, d.va, d.vb)
 }
