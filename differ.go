@@ -29,12 +29,13 @@ const (
 // Attention:
 // Differ may cause panic when you call Compare.
 type Differ struct {
-	diffs    []*diff
-	ignores  []*regexp.Regexp
-	includes []*regexp.Regexp
-	maxDepth int
-	diffTmpl string
-	bff      *bufferF
+	diffs       []*diff
+	ignores     []*regexp.Regexp
+	includes    []*regexp.Regexp
+	comparators []Comparator
+	maxDepth    int
+	diffTmpl    string
+	bff         *bufferF
 }
 
 func NewDiffer() *Differ {
@@ -108,9 +109,15 @@ func (d *Differ) Includes(regexps ...string) *Differ {
 	return d
 }
 
+func (d *Differ) WithComparator(c Comparator) *Differ {
+	d.comparators = append(d.comparators, c)
+	return d
+}
+
 func (d *Differ) Reset() *Differ {
-	d.includes = nil
-	d.ignores = nil
+	d.includes = make([]*regexp.Regexp, 0, len(d.includes))
+	d.ignores = make([]*regexp.Regexp, 0, len(d.ignores))
+	d.comparators = make([]Comparator, 0, len(d.comparators))
 	d.diffs = make([]*diff, 0)
 	d.bff = newBufferF()
 	return d
@@ -129,7 +136,7 @@ func (d *Differ) Compare(a, b interface{}) *Differ {
 	return d
 }
 
-func (d *Differ) doCompare(a, b Value, fieldName string, depth int) {
+func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 	if depth > d.maxDepth {
 		panic("depth over limit")
 	}
@@ -142,59 +149,79 @@ func (d *Differ) doCompare(a, b Value, fieldName string, depth int) {
 		typeMismatchPanic(a.Type(), b.Type())
 	}
 
+	for _, c := range d.comparators {
+		if c.Match(fieldPath) {
+			fieldPath = fieldPath + ".$[customized]"
+			dt, va, vb := c.Equals(a.Interface(), b.Interface())
+			switch dt {
+			case LengthDiff:
+				d.setLenDiff(fieldPath, a, b)
+			case NilDiff:
+				d.setLenDiff(fieldPath, a, b)
+			case ElemDiff:
+				d.setDiff(fieldPath, va, vb)
+			case NoDiff:
+				return
+			default:
+				panic("customized comparator returned an unexpected DiffType")
+			}
+			return
+		}
+	}
+
 	switch a.Kind() {
 	case Array:
-		for i := 0; i < a.Len(); i++ {
+		for i := 0; i < minInt(a.Len(), b.Len()); i++ {
 			d.doCompare(a.Index(i), b.Index(i), a.Index(i).Type().Name(), depth)
 		}
 	case Slice:
 		if a.IsNil() != b.IsNil() {
-			d.setNilDiff(fieldName, a, b)
+			d.setNilDiff(fieldPath, a, b)
 			return
 		}
 		if a.Len() != b.Len() {
-			d.setLenDiff(fieldName, a, b)
+			d.setLenDiff(fieldPath, a, b)
 		}
 		if a.Pointer() == b.Pointer() {
 			return
 		}
 		for i := 0; i < minInt(a.Len(), b.Len()); i++ {
 			d.doCompare(a.Index(i), b.Index(i),
-				concat(fieldName, "[", strconv.Itoa(i), "]"), depth)
+				concat(fieldPath, "[", strconv.Itoa(i), "]"), depth)
 		}
 	case Interface:
 		if a.IsNil() != b.IsNil() {
-			d.setNilDiff(fieldName, a, b)
+			d.setNilDiff(fieldPath, a, b)
 			return
 		}
 		d.doCompare(a, b, a.Type().Name(), depth+1)
 	case Ptr:
 		if a.IsNil() != b.IsNil() {
-			d.setNilDiff(fieldName, a, b)
+			d.setNilDiff(fieldPath, a, b)
 			return
 		}
 		if a.Pointer() != b.Pointer() {
-			d.doCompare(a.Elem(), b.Elem(), fieldName, depth)
+			d.doCompare(a.Elem(), b.Elem(), fieldPath, depth)
 		}
 	case Struct:
 		for i, n := 0, a.NumField(); i < n; i++ {
-			d.doCompare(a.Field(i), b.Field(i), concat(fieldName, ".", a.Type().Field(i).Name), depth+1)
+			d.doCompare(a.Field(i), b.Field(i), concat(fieldPath, ".", a.Type().Field(i).Name), depth+1)
 		}
 	case Map:
 		if a.IsNil() != b.IsNil() {
-			d.setNilDiff(fieldName, a, b)
+			d.setNilDiff(fieldPath, a, b)
 			return
 		}
 		if a.Len() != b.Len() {
-			d.setLenDiff(fieldName, a, b)
+			d.setLenDiff(fieldPath, a, b)
 		}
 		for _, k := range a.MapKeys() {
 			v1, v2 := a.MapIndex(k), b.MapIndex(k)
-			d.doCompare(v1, v2, concat(fieldName, "[", toString(k.Interface()), "]"), depth)
+			d.doCompare(v1, v2, concat(fieldPath, "[", toString(k.Interface()), "]"), depth)
 		}
 	default:
 		if !DeepEqual(a.Interface(), b.Interface()) {
-			d.setDiff(fieldName, a, b)
+			d.setDiff(fieldPath, a, b)
 			return
 		}
 	}

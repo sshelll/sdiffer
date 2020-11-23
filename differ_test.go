@@ -94,3 +94,39 @@ func (suite *DiffTestSuite) TestTag() {
 	}
 }
 
+type parentsComparator struct {}
+
+func (*parentsComparator) Match(path string) bool {
+	return path == "Person.Parents"
+}
+
+func (*parentsComparator) Equals(a, b interface{}) (dt DiffType, msgA, msgB interface{}) {
+	pa, pb := a.([]*Person), b.([]*Person)
+	if len(pa) != len(pb) {
+		return LengthDiff, len(pa), len(pb)
+	}
+	if pa[0].Name != pb[0].Name {
+		return ElemDiff, "hello", "world"
+	}
+	return NoDiff, nil, nil
+}
+
+func (suite *DiffTestSuite) TestComparator() {
+	me := &Person{
+		Name:   "sjl",
+		Age:    20,
+		Loc:    &Location{"Ji'An", newLoc("JiangXi")},
+		StrArr: []string{"hello", "world", "hi"},
+	}
+	he := &Person{
+		Name:   "kxc",
+		Age:    21,
+		Loc:    nil,
+		StrArr: []string{"world", "hello", "hi"},
+	}
+	me.Parents = append(me.Parents, &Person{Name: "me father", Parents: []*Person{{Name: "me grandFather"}}})
+	he.Parents = append(he.Parents, &Person{Name: "he father", Parents: []*Person{{Name: "he grandFather"}}})
+
+	differ := NewDiffer().WithComparator(new(parentsComparator)).Compare(me, he)
+	fmt.Println(differ.String())
+}
