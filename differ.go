@@ -193,7 +193,7 @@ func (d *Differ) doCompare(a, b Value, fieldName string, depth int) {
 			d.doCompare(v1, v2, concat(fieldName, "[", toString(k.Interface()), "]"), depth)
 		}
 	default:
-		if a.Interface() != b.Interface() {
+		if !DeepEqual(a.Interface(), b.Interface()) {
 			d.setDiff(fieldName, a, b)
 			return
 		}
