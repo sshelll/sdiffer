@@ -94,7 +94,7 @@ func (suite *DiffTestSuite) TestTag() {
 	}
 }
 
-type parentsComparator struct {}
+type parentsComparator struct{}
 
 func (*parentsComparator) Match(path string) bool {
 	return path == "Person.Parents"

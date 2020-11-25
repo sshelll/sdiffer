@@ -18,5 +18,6 @@ func newTrimTag(exp, cutset string) *trimTag {
 }
 
 func (tt *trimTag) Trim(s string) string {
-	return strings.Trim(s, tt.cutset)
+	res := strings.Trim(s, tt.cutset)
+	return res
 }

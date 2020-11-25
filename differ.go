@@ -134,6 +134,7 @@ func (d *Differ) WithTrimSpace(fieldPaths ...string) *Differ {
 func (d *Differ) Reset() *Differ {
 	d.includes = make([]*regexp.Regexp, 0, len(d.includes))
 	d.ignores = make([]*regexp.Regexp, 0, len(d.ignores))
+	d.trimSpaces = make([]*regexp.Regexp, 0, len(d.trimSpaces))
 	d.trimTags = make([]*trimTag, 0, len(d.trimTags))
 	d.comparators = make([]Comparator, 0, len(d.comparators))
 	d.diffs = make([]*diff, 0)
@@ -251,6 +252,7 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 				if !DeepEqual(tt.Trim(a.String()), tt.Trim(b.String())) {
 					d.setDiff(fieldPath, a, b)
 				}
+				return
 			}
 		}
 		fallthrough
