@@ -4,6 +4,7 @@ import (
 	. "reflect"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type diffMode int
@@ -32,6 +33,8 @@ type Differ struct {
 	diffs       []*diff
 	ignores     []*regexp.Regexp
 	includes    []*regexp.Regexp
+	trimSpaces  []*regexp.Regexp
+	trimTags    []*trimTag
 	comparators []Comparator
 	maxDepth    int
 	diffTmpl    string
@@ -109,14 +112,29 @@ func (d *Differ) Includes(regexps ...string) *Differ {
 	return d
 }
 
+// WithComparator specify some fields to use a customized Comparator.
 func (d *Differ) WithComparator(c Comparator) *Differ {
 	d.comparators = append(d.comparators, c)
+	return d
+}
+
+// WithTrim trim string before comparison.
+func (d *Differ) WithTrim(fieldPath string, cutset string) *Differ {
+	d.trimTags = append(d.trimTags, newTrimTag(fieldPath, cutset))
+	return d
+}
+
+func (d *Differ) WithTrimSpace(fieldPaths ...string) *Differ {
+	for _, exp := range fieldPaths {
+		d.trimSpaces = append(d.trimSpaces, regexp.MustCompile(exp))
+	}
 	return d
 }
 
 func (d *Differ) Reset() *Differ {
 	d.includes = make([]*regexp.Regexp, 0, len(d.includes))
 	d.ignores = make([]*regexp.Regexp, 0, len(d.ignores))
+	d.trimTags = make([]*trimTag, 0, len(d.trimTags))
 	d.comparators = make([]Comparator, 0, len(d.comparators))
 	d.diffs = make([]*diff, 0)
 	d.bff = newBufferF()
@@ -219,6 +237,23 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 			v1, v2 := a.MapIndex(k), b.MapIndex(k)
 			d.doCompare(v1, v2, concat(fieldPath, "[", toString(k.Interface()), "]"), depth)
 		}
+	case String:
+		for _, ts := range d.trimSpaces {
+			if ts.MatchString(fieldPath) {
+				if !DeepEqual(strings.TrimSpace(a.String()), strings.TrimSpace(b.String())) {
+					d.setDiff(fieldPath, a, b)
+				}
+				return
+			}
+		}
+		for _, tt := range d.trimTags {
+			if tt.fieldRegexp.MatchString(fieldPath) {
+				if !DeepEqual(tt.Trim(a.String()), tt.Trim(b.String())) {
+					d.setDiff(fieldPath, a, b)
+				}
+			}
+		}
+		fallthrough
 	default:
 		if !DeepEqual(a.Interface(), b.Interface()) {
 			d.setDiff(fieldPath, a, b)

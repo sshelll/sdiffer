@@ -130,3 +130,15 @@ func (suite *DiffTestSuite) TestComparator() {
 	differ := NewDiffer().WithComparator(new(parentsComparator)).Compare(me, he)
 	fmt.Println(differ.String())
 }
+
+func (suite *DiffTestSuite) TestTrimSpaces() {
+	me := &Person{
+		Name: "   sjl",
+	}
+	me2 := &Person{
+		Name: " sjl     ",
+	}
+	differ := NewDiffer()
+	println(differ.WithTrimSpace("Person.Name").Compare(me, me2).String())
+	println(differ.Reset().WithTrim("Person.Name", " ").Compare(me, me2).String())
+}
