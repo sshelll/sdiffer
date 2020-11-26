@@ -176,7 +176,7 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 			case LengthDiff:
 				d.setLenDiff(fieldPath, a, b)
 			case NilDiff:
-				d.setLenDiff(fieldPath, a, b)
+				d.setNilDiff(fieldPath, a, b)
 			case ElemDiff:
 				d.setDiff(fieldPath, va, vb)
 			case NoDiff:
