@@ -83,14 +83,7 @@ func (d *Differ) Ignore(regexps ...string) *Differ {
 	}
 	d.ignores = make([]*regexp.Regexp, 0, len(regexps))
 	for _, expr := range regexps {
-		mustSuccess(func() error {
-			if r, err := regexp.Compile(expr); err != nil {
-				return err
-			} else {
-				d.ignores = append(d.ignores, r)
-				return nil
-			}
-		})
+		d.ignores = append(d.ignores, regexp.MustCompile(expr))
 	}
 	return d
 }
@@ -100,14 +93,7 @@ func (d *Differ) Ignore(regexps ...string) *Differ {
 func (d *Differ) Includes(regexps ...string) *Differ {
 	d.includes = make([]*regexp.Regexp, 0, len(regexps))
 	for _, expr := range regexps {
-		mustSuccess(func() error {
-			if r, err := regexp.Compile(expr); err != nil {
-				return err
-			} else {
-				d.includes = append(d.includes, r)
-				return nil
-			}
-		})
+		d.includes = append(d.includes, regexp.MustCompile(expr))
 	}
 	return d
 }
