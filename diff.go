@@ -21,6 +21,18 @@ func newDiff(name string, a, b interface{}) *diff {
 	}
 }
 
+func (d *diff) Name() string {
+	return d.name
+}
+
+func (d *diff) Va() interface{} {
+	return d.va
+}
+
+func (d *diff) Vb() interface{} {
+	return d.vb
+}
+
 // Tag generate a short tag of the diff name.
 // For example:
 // Person.Schools[0].Buildings[2].Name => Person.Schools.Buildings.Name

@@ -30,7 +30,7 @@ const (
 // Attention:
 // Differ may cause panic when you call Compare.
 type Differ struct {
-	diffs       []*diff
+	diffs       map[string]*diff
 	ignores     []*regexp.Regexp
 	includes    []*regexp.Regexp
 	trimSpaces  []*regexp.Regexp
@@ -43,9 +43,9 @@ type Differ struct {
 
 func NewDiffer() *Differ {
 	return &Differ{
-		diffs:    make([]*diff, 0, 20),
-		bff:      newBufferF(),
-		maxDepth: defaultDepthLimit,
+		diffs:       make(map[string]*diff, 16),
+		bff:         newBufferF(),
+		maxDepth:    defaultDepthLimit,
 	}
 }
 
@@ -57,7 +57,11 @@ func (d *Differ) String() string {
 }
 
 func (d *Differ) Diffs() []*diff {
-	return d.diffs
+	dfs := make([]*diff, 0, len(d.diffs))
+	for _, df := range d.diffs {
+		dfs = append(dfs, df)
+	}
+	return dfs
 }
 
 // WithMaxDepth set the max depth of Differ.
@@ -117,13 +121,29 @@ func (d *Differ) WithTrimSpace(fieldPaths ...string) *Differ {
 	return d
 }
 
+func (d *Differ) FindDiff(fieldName string) (df *diff, ok bool) {
+	df, ok = d.diffs[fieldName]
+	return
+}
+
+func (d *Differ) FindDiffFuzzily(expr string) (dfs []*diff) {
+	if r, err := regexp.Compile(expr); err == nil {
+		for name, df := range d.diffs {
+			if r.MatchString(name) {
+				dfs = append(dfs, df)
+			}
+		}
+	}
+	return
+}
+
 func (d *Differ) Reset() *Differ {
 	d.includes = make([]*regexp.Regexp, 0, len(d.includes))
 	d.ignores = make([]*regexp.Regexp, 0, len(d.ignores))
 	d.trimSpaces = make([]*regexp.Regexp, 0, len(d.trimSpaces))
 	d.trimTags = make([]*trimTag, 0, len(d.trimTags))
 	d.comparators = make([]Comparator, 0, len(d.comparators))
-	d.diffs = make([]*diff, 0)
+	d.diffs = make(map[string]*diff, len(d.diffs))
 	d.bff = newBufferF()
 	return d
 }
@@ -269,7 +289,7 @@ func (d *Differ) setDiff(fieldName string, va, vb interface{}) {
 			return
 		}
 	}
-	d.diffs = append(d.diffs, newDiff(fieldName, va, vb))
+	d.diffs[fieldName] = newDiff(fieldName, va, vb)
 }
 
 func (d *Differ) getDiffMode() diffMode {

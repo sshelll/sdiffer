@@ -142,3 +142,7 @@ func (suite *DiffTestSuite) TestTrimSpaces() {
 	println(differ.WithTrimSpace("Person.Name").Compare(me, me2).String())
 	println(differ.Reset().WithTrim("Person.Name", " ").Compare(me, me2).String())
 }
+
+func (suite *DiffTestSuite) TestChore() {
+
+}
