@@ -3,6 +3,7 @@ package sdiffer
 import (
 	. "reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -36,6 +37,7 @@ type Differ struct {
 	trimSpaces  []*regexp.Regexp
 	trimTags    []*trimTag
 	comparators []Comparator
+	sorters     []Sorter
 	maxDepth    int
 	diffTmpl    string
 	bff         *bufferF
@@ -43,9 +45,9 @@ type Differ struct {
 
 func NewDiffer() *Differ {
 	return &Differ{
-		diffs:       make(map[string]*diff, 16),
-		bff:         newBufferF(),
-		maxDepth:    defaultDepthLimit,
+		diffs:    make(map[string]*diff, 16),
+		bff:      newBufferF(),
+		maxDepth: defaultDepthLimit,
 	}
 }
 
@@ -268,6 +270,21 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 			return
 		}
 	}
+}
+
+func (d *Differ) disorderedCompare(sv Value, sorter Sorter) {
+	copiedSv := d.copySliceValue(sv)
+	//length := copiedSv.Len()
+	sort.SliceStable(copiedSv.Interface(), sorter.Less)
+}
+
+func (d *Differ) copySliceValue(sv Value) Value {
+	length := sv.Len()
+	copiedSv := MakeSlice(sv.Type(), length, length)
+	for i := 0; i < length; i++ {
+		copiedSv.Index(i).Set(sv.Index(i))
+	}
+	return copiedSv
 }
 
 func (d *Differ) setNilDiff(fieldName string, a, b Value) {
