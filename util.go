@@ -2,6 +2,7 @@ package sdiffer
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -51,4 +52,13 @@ func minInt(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func copySliceValue(sv reflect.Value) reflect.Value {
+	length := sv.Len()
+	copiedSv := reflect.MakeSlice(sv.Type(), length, length)
+	for i := 0; i < length; i++ {
+		copiedSv.Index(i).Set(sv.Index(i))
+	}
+	return copiedSv
 }

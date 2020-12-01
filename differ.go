@@ -3,7 +3,6 @@ package sdiffer
 import (
 	. "reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,10 +16,11 @@ const (
 )
 
 const (
-	initTypeName      = "$"
-	null              = "<nil>"
-	notNull           = "<not nil>"
-	defaultDepthLimit = 30
+	initTypeName        = "$"
+	null                = "<nil>"
+	notNull             = "<not nil>"
+	useComparatorSuffix = ".$[customized]"
+	defaultDepthLimit   = 30
 )
 
 // Differ compares two interfaces with the same reflect.Type.
@@ -104,9 +104,15 @@ func (d *Differ) Includes(regexps ...string) *Differ {
 	return d
 }
 
-// WithComparator specify some fields to use a customized Comparator.
+// WithComparator specify some fields to compare with a customized Comparator.
 func (d *Differ) WithComparator(c Comparator) *Differ {
 	d.comparators = append(d.comparators, c)
+	return d
+}
+
+// WithSorter sort some fields to do disordered comparison.
+func (d *Differ) WithSorter(s Sorter) *Differ {
+	d.sorters = append(d.sorters, s)
 	return d
 }
 
@@ -116,6 +122,7 @@ func (d *Differ) WithTrim(fieldPath string, cutset string) *Differ {
 	return d
 }
 
+// WithTrimSpace trim space before comparison.
 func (d *Differ) WithTrimSpace(fieldPaths ...string) *Differ {
 	for _, exp := range fieldPaths {
 		d.trimSpaces = append(d.trimSpaces, regexp.MustCompile(exp))
@@ -123,11 +130,13 @@ func (d *Differ) WithTrimSpace(fieldPaths ...string) *Differ {
 	return d
 }
 
+// FindDiff find diff with name.
 func (d *Differ) FindDiff(fieldName string) (df *diff, ok bool) {
 	df, ok = d.diffs[fieldName]
 	return
 }
 
+// FindDiffFuzzily find diff with regexp.
 func (d *Differ) FindDiffFuzzily(expr string) (dfs []*diff) {
 	if r, err := regexp.Compile(expr); err == nil {
 		for name, df := range d.diffs {
@@ -145,6 +154,7 @@ func (d *Differ) Reset() *Differ {
 	d.trimSpaces = make([]*regexp.Regexp, 0, len(d.trimSpaces))
 	d.trimTags = make([]*trimTag, 0, len(d.trimTags))
 	d.comparators = make([]Comparator, 0, len(d.comparators))
+	d.sorters = make([]Sorter, 0, len(d.sorters))
 	d.diffs = make(map[string]*diff, len(d.diffs))
 	d.bff = newBufferF()
 	return d
@@ -178,7 +188,7 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 
 	for _, c := range d.comparators {
 		if c.Match(fieldPath) {
-			fieldPath = fieldPath + ".$[customized]"
+			fieldPath = fieldPath + useComparatorSuffix
 			dt, va, vb := c.Equals(a.Interface(), b.Interface())
 			switch dt {
 			case LengthDiff:
@@ -211,6 +221,12 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 		}
 		if a.Pointer() == b.Pointer() {
 			return
+		}
+		for _, s := range d.sorters {
+			if s.Match(fieldPath) {
+				a, b = d.sortSlice(a, b, s)
+				break
+			}
 		}
 		for i := 0; i < minInt(a.Len(), b.Len()); i++ {
 			d.doCompare(a.Index(i), b.Index(i),
@@ -272,19 +288,13 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 	}
 }
 
-func (d *Differ) disorderedCompare(sv Value, sorter Sorter) {
-	copiedSv := d.copySliceValue(sv)
-	//length := copiedSv.Len()
-	sort.SliceStable(copiedSv.Interface(), sorter.Less)
-}
-
-func (d *Differ) copySliceValue(sv Value) Value {
-	length := sv.Len()
-	copiedSv := MakeSlice(sv.Type(), length, length)
-	for i := 0; i < length; i++ {
-		copiedSv.Index(i).Set(sv.Index(i))
-	}
-	return copiedSv
+func (d *Differ) sortSlice(sa, sb Value, sorter Sorter) (sortedSa, sortedSb Value) {
+	// deep copy slice to avoid affect the original data.
+	sortedSa = copySliceValue(sa)
+	sortedSb = copySliceValue(sb)
+	qsort(sortedSa, sorter.Less)
+	qsort(sortedSb, sorter.Less)
+	return
 }
 
 func (d *Differ) setNilDiff(fieldName string, a, b Value) {

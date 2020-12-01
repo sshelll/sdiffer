@@ -3,6 +3,8 @@ package sdiffer
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	"reflect"
+	"regexp"
 	"testing"
 )
 
@@ -143,6 +145,58 @@ func (suite *DiffTestSuite) TestTrimSpaces() {
 	println(differ.Reset().WithTrim("Person.Name", " ").Compare(me, me2).String())
 }
 
-func (suite *DiffTestSuite) TestChore() {
+func (suite *DiffTestSuite) TestSort() {
+	type Integer struct {
+		val int
+	}
+	arr := []Integer{{5}, {4}, {3}, {2}, {1}}
+	qsort(reflect.ValueOf(arr), func(a, b interface{}) bool {
+		i, j := a.(Integer), b.(Integer)
+		return i.val < j.val
+	})
+	fmt.Println(arr)
+}
 
+type pSorter struct {
+	match *regexp.Regexp
+}
+
+func (ps *pSorter) Match(fieldPath string) bool {
+	return ps.match.MatchString(fieldPath)
+}
+
+func (ps *pSorter) Less(a, b interface{}) bool {
+	pa, pb := a.(*Person), b.(*Person)
+	return pa.Age < pb.Age
+}
+
+func (suite *DiffTestSuite) TestDisorderedCompare() {
+	me := &Person{
+		Name:    "me",
+		Age:     20,
+		Parents: []*Person{{Name: "p1", Age: 30}, {Name: "p2", Age: 40}, {Name: "p3", Age: 45}},
+	}
+	he := &Person{
+		Name:    "he",
+		Age:     21,
+		Parents: []*Person{{Name: "p2", Age: 40}, {Name: "p1", Age: 30}, {Name: "p3", Age: 50}},
+	}
+
+	differ := NewDiffer().Compare(me, he)
+	_, ok := differ.FindDiff("Person.Name")
+	suite.True(ok)
+	_, ok = differ.FindDiff("Person.Age")
+	suite.True(ok)
+	dfs := differ.FindDiffFuzzily("Person.Parents[[0-9]+]")
+	suite.NotZero(len(dfs))
+
+	differ.Reset()
+	differ.WithSorter(&pSorter{regexp.MustCompile("Person.Parents")}).Compare(me, he)
+	suite.Equal(40, he.Parents[0].Age)
+	_, ok = differ.FindDiff("Person.Parents[[0-9]+].Name")
+	suite.False(ok)
+}
+
+func (suite *DiffTestSuite) TestChore() {
+	// ...
 }
