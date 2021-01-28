@@ -1,6 +1,7 @@
 package sdiffer
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -195,6 +196,19 @@ func (suite *DiffTestSuite) TestDisorderedCompare() {
 	suite.Equal(40, he.Parents[0].Age)
 	_, ok = differ.FindDiff("Person.Parents[[0-9]+].Name")
 	suite.False(ok)
+}
+
+func (suite *DiffTestSuite) TestRawInterfaceCompare() {
+	const (
+		p1 = `{"name":"shaojiale","age":21,"title":{"bad":1,"good":10}}`
+		p2 = `{"name":"xushiyun","age":21,"title":{"bad":0,"good":99}}`
+	)
+
+	var any, any2 interface{}
+	_ = json.Unmarshal([]byte(p1), &any)
+	_ = json.Unmarshal([]byte(p2), &any2)
+
+	fmt.Println(NewDiffer().Compare(any, any2).String())
 }
 
 func (suite *DiffTestSuite) TestChore() {

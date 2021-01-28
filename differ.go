@@ -1,6 +1,7 @@
 package sdiffer
 
 import (
+	"fmt"
 	. "reflect"
 	"regexp"
 	"strconv"
@@ -237,7 +238,24 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 			d.setNilDiff(fieldPath, a, b)
 			return
 		}
-		d.doCompare(a, b, a.Type().Name(), depth+1)
+
+		if sa, sb, ok := parseStringValue(a, b); ok {
+			d.doCompare(sa, sb, fieldPath, depth)
+			return
+		}
+
+		if fa, fb, ok := parseFloatValue(a, b); ok {
+			d.doCompare(fa, fb, fieldPath, depth)
+			return
+		}
+
+		if ma, mb, ok := parseMapValue(a, b); ok {
+			d.doCompare(ma, mb, fieldPath, depth+1)
+			return
+		}
+
+		panic(fmt.Sprintf("unexpected interface with type: %s", a.Type().Name()))
+
 	case Ptr:
 		if a.IsNil() != b.IsNil() {
 			d.setNilDiff(fieldPath, a, b)

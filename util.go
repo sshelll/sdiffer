@@ -62,3 +62,33 @@ func copySliceValue(sv reflect.Value) reflect.Value {
 	}
 	return copiedSv
 }
+
+func parseStringValue(a, b reflect.Value) (as, bs reflect.Value, ok bool) {
+	ai, bi := a.Interface(), b.Interface()
+	_, ok = ai.(string)
+	if !ok {
+		return
+	}
+	as, bs = reflect.ValueOf(ai), reflect.ValueOf(bi)
+	return
+}
+
+func parseFloatValue(a, b reflect.Value) (as, bs reflect.Value, ok bool) {
+	ai, bi := a.Interface(), b.Interface()
+	_, ok = ai.(float64)
+	if !ok {
+		return
+	}
+	as, bs = reflect.ValueOf(ai), reflect.ValueOf(bi)
+	return
+}
+
+func parseMapValue(a, b reflect.Value) (as, bs reflect.Value, ok bool) {
+	ai, bi := a.Interface(), b.Interface()
+	_, ok = ai.(map[string]interface{})
+	if !ok {
+		return
+	}
+	as, bs = reflect.ValueOf(ai), reflect.ValueOf(bi)
+	return
+}
