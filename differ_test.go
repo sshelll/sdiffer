@@ -3,10 +3,11 @@ package sdiffer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"reflect"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type Person struct {
@@ -66,18 +67,6 @@ func (suite *DiffTestSuite) TestType() {
 	suite.True(allowPanic(func() {
 		fmt.Println(NewDiffer().Compare(arr1, arr2).String())
 	}))
-}
-
-func (suite *DiffTestSuite) TestSlice() {
-	arr1 := []int{1, 2, 3, 4, 5}
-	arr2 := []int{5, 4, 3, 2, 1}
-	fmt.Println(NewDiffer().Compare(arr1, arr2).String())
-}
-
-func (suite *DiffTestSuite) TestMap() {
-	b1 := &Building{map[string]string{"1": "1", "2": "2"}}
-	b2 := &Building{map[string]string{"1": "2", "2": "1"}}
-	fmt.Println(NewDiffer().Compare(b1, b2).String())
 }
 
 func (suite *DiffTestSuite) TestIgnore() {
@@ -200,8 +189,8 @@ func (suite *DiffTestSuite) TestDisorderedCompare() {
 
 func (suite *DiffTestSuite) TestRawInterfaceCompare() {
 	const (
-		p1 = `{"name":"shaojiale","age":21,"title":{"bad":1,"good":10}}`
-		p2 = `{"name":"xushiyun","age":21,"title":{"bad":0,"good":99}}`
+		p1 = `{"name":"shaojiale","age":21,"title":{"bad":1,"good":10},"list":[1,2,3],"happy":true}`
+		p2 = `{"name":"xushiyun","age":21,"title":{"bad":0,"good":99},"list":[3,2,1],"happy":false}`
 	)
 
 	var any, any2 interface{}

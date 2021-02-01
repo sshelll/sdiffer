@@ -249,6 +249,16 @@ func (d *Differ) doCompare(a, b Value, fieldPath string, depth int) {
 			return
 		}
 
+		if ba, bb, ok := parseBoolValue(a, b); ok {
+			d.doCompare(ba, bb, fieldPath, depth)
+			return
+		}
+
+		if aa, ab, ok := parseArrayValue(a, b); ok {
+			d.doCompare(aa, ab, fieldPath, depth)
+			return
+		}
+
 		if ma, mb, ok := parseMapValue(a, b); ok {
 			d.doCompare(ma, mb, fieldPath, depth+1)
 			return

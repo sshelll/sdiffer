@@ -83,6 +83,26 @@ func parseFloatValue(a, b reflect.Value) (as, bs reflect.Value, ok bool) {
 	return
 }
 
+func parseBoolValue(a, b reflect.Value) (ba, bb reflect.Value, ok bool) {
+	ai, bi := a.Interface(), b.Interface()
+	_, ok = (ai).(bool)
+	if !ok {
+		return
+	}
+	ba, bb = reflect.ValueOf(ai), reflect.ValueOf(bi)
+	return
+}
+
+func parseArrayValue(a, b reflect.Value) (aa, ab reflect.Value, ok bool) {
+	ai, bi := a.Interface(), b.Interface()
+	_, ok = (ai).([]interface{})
+	if !ok {
+		return
+	}
+	aa, ab = reflect.ValueOf(ai), reflect.ValueOf(bi)
+	return
+}
+
 func parseMapValue(a, b reflect.Value) (as, bs reflect.Value, ok bool) {
 	ai, bi := a.Interface(), b.Interface()
 	_, ok = ai.(map[string]interface{})
